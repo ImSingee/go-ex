@@ -18,6 +18,10 @@ func ReadDict_StringBoolMap(filename string) (map[string]bool, error) {
 	return m, err
 }
 
+func Read(filename string, ptrToValue interface{}) error {
+	return readJSON(filename, ptrToValue)
+}
+
 func readJSON(filename string, v interface{}) error {
 	f, err := os.Open(filename)
 	if err != nil {
