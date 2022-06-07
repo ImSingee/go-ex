@@ -88,30 +88,33 @@ func NewExpirable[K comparable, V any](size int, onEvict EvictCallback[K, V], de
 
 // Add adds a key and a value to the LRU interface (ttl equals to the default)
 func (c *ExpirableCache[K, V]) Add(key K, value V) (evicted bool) {
-	return c.add(key, value, c.ttl)
+	return c.add(key, value, time.Now().Add(c.ttl))
 }
 
 // AddWithTTL adds a key and a value with a TTL to the LRU interface
 func (c *ExpirableCache[K, V]) AddWithTTL(key K, value V, ttl time.Duration) (evicted bool) {
-	return c.add(key, value, ttl)
+	return c.add(key, value, time.Now().Add(ttl))
+}
+
+// AddWithExpire adds a key and a value with specific expire time to the LRU interface
+func (c *ExpirableCache[K, V]) AddWithExpire(key K, value V, expiresAt time.Time) (evicted bool) {
+	return c.add(key, value, expiresAt)
 }
 
 // add performs the actual addition to the LRU cache
-func (c *ExpirableCache[K, V]) add(key K, value V, ttl time.Duration) (evicted bool) {
+func (c *ExpirableCache[K, V]) add(key K, value V, expiresAt time.Time) (evicted bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	now := time.Now()
-
 	// Check for existing item
 	if ent, ok := c.items[key]; ok {
 		c.evictList.MoveToFront(ent)
 		ent.Value.value = value
-		ent.Value.expiresAt = now.Add(ttl)
+		ent.Value.expiresAt = expiresAt
 		return false
 	}
 
 	// Add new item
-	ent := &expirableEntry[K, V]{key: key, value: value, expiresAt: now.Add(ttl)}
+	ent := &expirableEntry[K, V]{key: key, value: value, expiresAt: expiresAt}
 	entry := c.evictList.PushFront(ent)
 	c.items[key] = entry
 
