@@ -6,7 +6,7 @@ import (
 )
 
 func BenchmarkLRU_Rand(b *testing.B) {
-	l, err := New(8192)
+	l, err := New[int64, int64](8192)
 	if err != nil {
 		b.Fatalf("err: %v", err)
 	}
@@ -35,7 +35,7 @@ func BenchmarkLRU_Rand(b *testing.B) {
 }
 
 func BenchmarkLRU_Freq(b *testing.B) {
-	l, err := New(8192)
+	l, err := New[int64, int64](8192)
 	if err != nil {
 		b.Fatalf("err: %v", err)
 	}
@@ -68,7 +68,7 @@ func BenchmarkLRU_Freq(b *testing.B) {
 
 func TestLRU(t *testing.T) {
 	evictCounter := 0
-	onEvicted := func(k interface{}, v interface{}) {
+	onEvicted := func(k, v int) {
 		if k != v {
 			t.Fatalf("Evict values not equal (%v!=%v)", k, v)
 		}
@@ -135,7 +135,7 @@ func TestLRU(t *testing.T) {
 // test that Add returns true/false if an eviction occurred
 func TestLRUAdd(t *testing.T) {
 	evictCounter := 0
-	onEvicted := func(k interface{}, v interface{}) {
+	onEvicted := func(k, v int) {
 		evictCounter++
 	}
 
@@ -154,7 +154,7 @@ func TestLRUAdd(t *testing.T) {
 
 // test that Contains doesn't update recent-ness
 func TestLRUContains(t *testing.T) {
-	l, err := New(2)
+	l, err := New[int, int](2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -173,7 +173,7 @@ func TestLRUContains(t *testing.T) {
 
 // test that ContainsOrAdd doesn't update recent-ness
 func TestLRUContainsOrAdd(t *testing.T) {
-	l, err := New(2)
+	l, err := New[int, int](2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -203,7 +203,7 @@ func TestLRUContainsOrAdd(t *testing.T) {
 
 // test that PeekOrAdd doesn't update recent-ness
 func TestLRUPeekOrAdd(t *testing.T) {
-	l, err := New(2)
+	l, err := New[int, int](2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -236,7 +236,7 @@ func TestLRUPeekOrAdd(t *testing.T) {
 
 // test that Peek doesn't update recent-ness
 func TestLRUPeek(t *testing.T) {
-	l, err := New(2)
+	l, err := New[int, int](2)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -256,7 +256,7 @@ func TestLRUPeek(t *testing.T) {
 // test that Resize can upsize and downsize
 func TestLRUResize(t *testing.T) {
 	onEvictCounter := 0
-	onEvicted := func(k interface{}, v interface{}) {
+	onEvicted := func(k, v int) {
 		onEvictCounter++
 	}
 	l, err := NewWithEvict(2, onEvicted)
