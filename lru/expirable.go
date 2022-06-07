@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-// Cache implements a thread safe LRU with expirable entries.
-type Cache[K comparable, V any] struct {
+// ExpirableCache implements a thread safe LRU with expirable entries.
+type ExpirableCache[K comparable, V any] struct {
 	size       int
 	purgeEvery time.Duration
 	ttl        time.Duration
@@ -32,23 +32,27 @@ type EvictCallback[K comparable, V any] func(key K, value V)
 // noEvictionTTL - very long ttl to prevent eviction
 const noEvictionTTL = time.Hour * 24 * 365 * 10
 
-// NewExpirableLRU returns a new cache with expirable entries.
+// NewExpirable returns a new cache with expirable entries.
 //
-// Size parameter set to 0 makes cache of unlimited size.
+// If size <= 0 means unlimited size
+// If defaultTtl <= 0 means by default there is no ttl
+// If purgeEvery = 0 means 5min
 //
-// Providing 0 TTL turns expiring off.
-//
-// Activates deleteExpired by purgeEvery duration.
-// If MaxKeys and TTL are defined and PurgeEvery is zero, PurgeEvery will be set to 5 minutes.
-func NewExpirableLRU[K comparable, V any](size int, onEvict EvictCallback[K, V], defaultTtl, purgeEvery time.Duration) *Cache[K, V] {
+// Please remember to call .Close if you don't use the cache anymore
+func NewExpirable[K comparable, V any](size int, onEvict EvictCallback[K, V], defaultTtl, purgeEvery time.Duration) *ExpirableCache[K, V] {
 	if size < 0 {
 		size = 0
 	}
 	if defaultTtl <= 0 {
 		defaultTtl = noEvictionTTL
 	}
+	if purgeEvery == 0 {
+		purgeEvery = 5 * time.Minute
+	} else if purgeEvery < 0 {
+		panic("Invalid Argument: purgeEvery must be a non-negative integer")
+	}
 
-	res := Cache[K, V]{
+	res := ExpirableCache[K, V]{
 		items:      map[K]*list.Element{},
 		evictList:  list.New(),
 		ttl:        defaultTtl,
@@ -60,39 +64,35 @@ func NewExpirableLRU[K comparable, V any](size int, onEvict EvictCallback[K, V],
 
 	// enable deleteExpired() running in separate goroutine for cache
 	// with non-zero TTL and size defined
-	if res.ttl != noEvictionTTL && (res.size > 0 || res.purgeEvery > 0) {
-		if res.purgeEvery <= 0 {
-			res.purgeEvery = time.Minute * 5 // non-zero purge enforced because size defined
-		}
-		go func(done <-chan struct{}) {
-			ticker := time.NewTicker(res.purgeEvery)
-			for {
-				select {
-				case <-done:
-					return
-				case <-ticker.C:
-					res.Lock()
-					res.deleteExpired()
-					res.Unlock()
-				}
+	go func(done <-chan struct{}) {
+		ticker := time.NewTicker(res.purgeEvery)
+		for {
+			select {
+			case <-done:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				res.Lock()
+				res.deleteExpired()
+				res.Unlock()
 			}
-		}(res.done)
-	}
+		}
+	}(res.done)
 	return &res
 }
 
-// Add adds a key and a value to the LRU interface
-func (c *Cache[K, V]) Add(key K, value V) (evicted bool) {
+// Add adds a key and a value to the LRU interface (ttl equals to the default)
+func (c *ExpirableCache[K, V]) Add(key K, value V) (evicted bool) {
 	return c.add(key, value, c.ttl)
 }
 
 // AddWithTTL adds a key and a value with a TTL to the LRU interface
-func (c *Cache[K, V]) AddWithTTL(key K, value V, ttl time.Duration) (evicted bool) {
+func (c *ExpirableCache[K, V]) AddWithTTL(key K, value V, ttl time.Duration) (evicted bool) {
 	return c.add(key, value, ttl)
 }
 
 // add performs the actual addition to the LRU cache
-func (c *Cache[K, V]) add(key K, value V, ttl time.Duration) (evicted bool) {
+func (c *ExpirableCache[K, V]) add(key K, value V, ttl time.Duration) (evicted bool) {
 	c.Lock()
 	defer c.Unlock()
 	now := time.Now()
@@ -119,7 +119,7 @@ func (c *Cache[K, V]) add(key K, value V, ttl time.Duration) (evicted bool) {
 }
 
 // Get returns the key value
-func (c *Cache[K, V]) Get(key K) (V, bool) {
+func (c *ExpirableCache[K, V]) Get(key K) (V, bool) {
 	c.Lock()
 	defer c.Unlock()
 	if ent, ok := c.items[key]; ok {
@@ -134,7 +134,7 @@ func (c *Cache[K, V]) Get(key K) (V, bool) {
 }
 
 // Peek returns the key value (or undefined if not found) without updating the "recently used"-ness of the key.
-func (c *Cache[K, V]) Peek(key K) (V, bool) {
+func (c *ExpirableCache[K, V]) Peek(key K) (V, bool) {
 	c.Lock()
 	defer c.Unlock()
 	if ent, ok := c.items[key]; ok {
@@ -148,7 +148,7 @@ func (c *Cache[K, V]) Peek(key K) (V, bool) {
 }
 
 // GetOldest returns the oldest entry
-func (c *Cache[K, V]) GetOldest() (key K, value V, ok bool) {
+func (c *ExpirableCache[K, V]) GetOldest() (key K, value V, ok bool) {
 	c.Lock()
 	defer c.Unlock()
 	ent := c.evictList.Back()
@@ -161,7 +161,7 @@ func (c *Cache[K, V]) GetOldest() (key K, value V, ok bool) {
 
 // Contains checks if a key is in the cache, without updating the recent-ness
 // or deleting it for being stale.
-func (c *Cache[K, V]) Contains(key K) (ok bool) {
+func (c *ExpirableCache[K, V]) Contains(key K) (ok bool) {
 	c.Lock()
 	defer c.Unlock()
 	_, ok = c.items[key]
@@ -169,7 +169,7 @@ func (c *Cache[K, V]) Contains(key K) (ok bool) {
 }
 
 // Remove key from the cache
-func (c *Cache[K, V]) Remove(key K) bool {
+func (c *ExpirableCache[K, V]) Remove(key K) bool {
 	c.Lock()
 	defer c.Unlock()
 	if ent, ok := c.items[key]; ok {
@@ -180,7 +180,7 @@ func (c *Cache[K, V]) Remove(key K) bool {
 }
 
 // RemoveOldest removes the oldest item from the cache.
-func (c *Cache[K, V]) RemoveOldest() (key K, value V, ok bool) {
+func (c *ExpirableCache[K, V]) RemoveOldest() (key K, value V, ok bool) {
 	c.Lock()
 	defer c.Unlock()
 	ent := c.evictList.Back()
@@ -193,14 +193,14 @@ func (c *Cache[K, V]) RemoveOldest() (key K, value V, ok bool) {
 }
 
 // Keys returns a slice of the keys in the cache, from oldest to newest.
-func (c *Cache[K, V]) Keys() []K {
+func (c *ExpirableCache[K, V]) Keys() []K {
 	c.Lock()
 	defer c.Unlock()
 	return c.keys()
 }
 
 // Purge clears the cache completely.
-func (c *Cache[K, V]) Purge() {
+func (c *ExpirableCache[K, V]) Purge() {
 	c.Lock()
 	defer c.Unlock()
 	for k, v := range c.items {
@@ -213,21 +213,21 @@ func (c *Cache[K, V]) Purge() {
 }
 
 // DeleteExpired clears cache of expired items
-func (c *Cache[K, V]) DeleteExpired() {
+func (c *ExpirableCache[K, V]) DeleteExpired() {
 	c.Lock()
 	defer c.Unlock()
 	c.deleteExpired()
 }
 
 // Len return count of items in cache
-func (c *Cache[K, V]) Len() int {
+func (c *ExpirableCache[K, V]) Len() int {
 	c.Lock()
 	defer c.Unlock()
 	return c.evictList.Len()
 }
 
 // Resize changes the cache size. size 0 doesn't resize the cache, as it means unlimited.
-func (c *Cache[K, V]) Resize(size int) (evicted int) {
+func (c *ExpirableCache[K, V]) Resize(size int) (evicted int) {
 	if size <= 0 {
 		return 0
 	}
@@ -245,14 +245,14 @@ func (c *Cache[K, V]) Resize(size int) (evicted int) {
 }
 
 // Close cleans the cache and destroys running goroutines
-func (c *Cache[K, V]) Close() {
+func (c *ExpirableCache[K, V]) Close() {
 	c.Lock()
 	defer c.Unlock()
 	close(c.done)
 }
 
 // removeOldest removes the oldest item from the cache. Has to be called with lock!
-func (c *Cache[K, V]) removeOldest() {
+func (c *ExpirableCache[K, V]) removeOldest() {
 	ent := c.evictList.Back()
 	if ent != nil {
 		c.removeElement(ent)
@@ -260,7 +260,7 @@ func (c *Cache[K, V]) removeOldest() {
 }
 
 // Keys returns a slice of the keys in the cache, from oldest to newest. Has to be called with lock!
-func (c *Cache[K, V]) keys() []K {
+func (c *ExpirableCache[K, V]) keys() []K {
 	keys := make([]K, 0, len(c.items))
 	for ent := c.evictList.Back(); ent != nil; ent = ent.Prev() {
 		keys = append(keys, ent.Value.(*expirableEntry[K, V]).key)
@@ -269,7 +269,7 @@ func (c *Cache[K, V]) keys() []K {
 }
 
 // removeElement is used to remove a given list element from the cache. Has to be called with lock!
-func (c *Cache[K, V]) removeElement(e *list.Element) {
+func (c *ExpirableCache[K, V]) removeElement(e *list.Element) {
 	c.evictList.Remove(e)
 	kv := e.Value.(*expirableEntry[K, V])
 	delete(c.items, kv.key)
@@ -279,7 +279,7 @@ func (c *Cache[K, V]) removeElement(e *list.Element) {
 }
 
 // deleteExpired deletes expired records. Has to be called with lock!
-func (c *Cache[K, V]) deleteExpired() {
+func (c *ExpirableCache[K, V]) deleteExpired() {
 	for _, key := range c.keys() {
 		if time.Now().After(c.items[key].Value.(*expirableEntry[K, V]).expiresAt) {
 			c.removeElement(c.items[key])
@@ -288,11 +288,11 @@ func (c *Cache[K, V]) deleteExpired() {
 	}
 }
 
-func (c *Cache[K, V]) zeroKey() K {
+func (c *ExpirableCache[K, V]) zeroKey() K {
 	return zero[K]()
 }
 
-func (c *Cache[K, V]) zeroValue() V {
+func (c *ExpirableCache[K, V]) zeroValue() V {
 	return zero[V]()
 }
 

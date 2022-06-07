@@ -9,7 +9,7 @@ import (
 )
 
 func TestExpirableLRUNoPurge(t *testing.T) {
-	lc := NewExpirableLRU[string, string](10, nil, 0, 0)
+	lc := NewExpirable[string, string](10, nil, 0, 0)
 
 	lc.Add("key1", "val1")
 	if lc.Len() != 1 {
@@ -57,7 +57,7 @@ func TestExpirableLRUNoPurge(t *testing.T) {
 
 func TestExpirableLRUWithPurge(t *testing.T) {
 	var evicted []string
-	lc := NewExpirableLRU[string, string](10, func(key, value string) { evicted = append(evicted, key, value) }, 150*time.Millisecond, time.Millisecond*100)
+	lc := NewExpirable[string, string](10, func(key, value string) { evicted = append(evicted, key, value) }, 150*time.Millisecond, time.Millisecond*100)
 	defer lc.Close()
 
 	k, v, ok := lc.GetOldest()
@@ -139,7 +139,7 @@ func TestExpirableLRUWithPurge(t *testing.T) {
 }
 
 func TestExpirableLRUWithPurgeEnforcedBySize(t *testing.T) {
-	lc := NewExpirableLRU[string, string](10, nil, time.Hour, 0)
+	lc := NewExpirable[string, string](10, nil, time.Hour, 0)
 	defer lc.Close()
 
 	for i := 0; i < 100; i++ {
@@ -163,7 +163,7 @@ func TestExpirableLRUWithPurgeEnforcedBySize(t *testing.T) {
 }
 
 func TestExpirableLRUConcurrency(t *testing.T) {
-	lc := NewExpirableLRU[string, string](0, nil, 0, 0)
+	lc := NewExpirable[string, string](0, nil, 0, 0)
 	wg := sync.WaitGroup{}
 	wg.Add(1000)
 	for i := 0; i < 1000; i++ {
@@ -180,7 +180,7 @@ func TestExpirableLRUConcurrency(t *testing.T) {
 
 func TestExpirableLRUInvalidateAndEvict(t *testing.T) {
 	var evicted int
-	lc := NewExpirableLRU[string, string](-1, func(_, _ string) { evicted++ }, 0, 0)
+	lc := NewExpirable[string, string](-1, func(_, _ string) { evicted++ }, 0, 0)
 
 	lc.Add("key1", "val1")
 	lc.Add("key2", "val2")
@@ -210,7 +210,7 @@ func TestExpirableLRUInvalidateAndEvict(t *testing.T) {
 }
 
 func TestLoadingExpired(t *testing.T) {
-	lc := NewExpirableLRU[string, string](0, nil, time.Millisecond*5, 0)
+	lc := NewExpirable[string, string](0, nil, time.Millisecond*5, 0)
 
 	lc.Add("key1", "val1")
 	if lc.Len() != 1 {
@@ -256,7 +256,7 @@ func TestLoadingExpired(t *testing.T) {
 }
 
 func TestAddWithTTL(t *testing.T) {
-	lc := NewExpirableLRU[string, string](0, nil, time.Millisecond*5, 0)
+	lc := NewExpirable[string, string](0, nil, time.Millisecond*5, 0)
 
 	lc.AddWithTTL("key1", "val1", time.Millisecond*15)
 	if lc.Len() != 1 {
@@ -292,7 +292,7 @@ func TestAddWithTTL(t *testing.T) {
 	}
 }
 func TestExpirableLRURemoveOldest(t *testing.T) {
-	lc := NewExpirableLRU[string, string](2, nil, 0, 0)
+	lc := NewExpirable[string, string](2, nil, 0, 0)
 
 	k, v, ok := lc.RemoveOldest()
 	if k != "" {
