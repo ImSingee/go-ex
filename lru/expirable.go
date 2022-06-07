@@ -1,9 +1,10 @@
 package lru
 
 import (
-	"container/list"
 	"sync"
 	"time"
+
+	"github.com/ImSingee/go-ex/linkedlist"
 )
 
 // ExpirableCache implements a thread safe LRU with expirable entries.
@@ -15,8 +16,8 @@ type ExpirableCache[K comparable, V any] struct {
 	onEvicted  EvictCallback[K, V]
 
 	mu        sync.Mutex
-	items     map[K]*list.Element
-	evictList *list.List
+	items     map[K]*linkedlist.Element[*expirableEntry[K, V]]
+	evictList *linkedlist.List[*expirableEntry[K, V]]
 }
 
 // expirableEntry is used to hold a value in the evictList
@@ -53,8 +54,8 @@ func NewExpirable[K comparable, V any](size int, onEvict EvictCallback[K, V], de
 	}
 
 	res := ExpirableCache[K, V]{
-		items:      map[K]*list.Element{},
-		evictList:  list.New(),
+		items:      map[K]*linkedlist.Element[*expirableEntry[K, V]]{},
+		evictList:  linkedlist.New[*expirableEntry[K, V]](),
 		ttl:        defaultTtl,
 		purgeEvery: purgeEvery,
 		size:       size,
@@ -100,8 +101,8 @@ func (c *ExpirableCache[K, V]) add(key K, value V, ttl time.Duration) (evicted b
 	// Check for existing item
 	if ent, ok := c.items[key]; ok {
 		c.evictList.MoveToFront(ent)
-		ent.Value.(*expirableEntry[K, V]).value = value
-		ent.Value.(*expirableEntry[K, V]).expiresAt = now.Add(ttl)
+		ent.Value.value = value
+		ent.Value.expiresAt = now.Add(ttl)
 		return false
 	}
 
@@ -124,11 +125,11 @@ func (c *ExpirableCache[K, V]) Get(key K) (V, bool) {
 	defer c.mu.Unlock()
 	if ent, ok := c.items[key]; ok {
 		// Expired item check
-		if time.Now().After(ent.Value.(*expirableEntry[K, V]).expiresAt) {
+		if time.Now().After(ent.Value.expiresAt) {
 			return c.zeroValue(), false
 		}
 		c.evictList.MoveToFront(ent)
-		return ent.Value.(*expirableEntry[K, V]).value, true
+		return ent.Value.value, true
 	}
 	return c.zeroValue(), false
 }
@@ -139,10 +140,10 @@ func (c *ExpirableCache[K, V]) Peek(key K) (V, bool) {
 	defer c.mu.Unlock()
 	if ent, ok := c.items[key]; ok {
 		// Expired item check
-		if time.Now().After(ent.Value.(*expirableEntry[K, V]).expiresAt) {
+		if time.Now().After(ent.Value.expiresAt) {
 			return c.zeroValue(), false
 		}
-		return ent.Value.(*expirableEntry[K, V]).value, true
+		return ent.Value.value, true
 	}
 	return c.zeroValue(), false
 }
@@ -153,7 +154,7 @@ func (c *ExpirableCache[K, V]) GetOldest() (key K, value V, ok bool) {
 	defer c.mu.Unlock()
 	ent := c.evictList.Back()
 	if ent != nil {
-		kv := ent.Value.(*expirableEntry[K, V])
+		kv := ent.Value
 		return kv.key, kv.value, true
 	}
 	return c.zeroKey(), c.zeroValue(), false
@@ -186,7 +187,7 @@ func (c *ExpirableCache[K, V]) RemoveOldest() (key K, value V, ok bool) {
 	ent := c.evictList.Back()
 	if ent != nil {
 		c.removeElement(ent)
-		kv := ent.Value.(*expirableEntry[K, V])
+		kv := ent.Value
 		return kv.key, kv.value, true
 	}
 	return c.zeroKey(), c.zeroValue(), false
@@ -205,7 +206,7 @@ func (c *ExpirableCache[K, V]) Purge() {
 	defer c.mu.Unlock()
 	for k, v := range c.items {
 		if c.onEvicted != nil {
-			c.onEvicted(k, v.Value.(*expirableEntry[K, V]).value)
+			c.onEvicted(k, v.Value.value)
 		}
 		delete(c.items, k)
 	}
@@ -263,15 +264,15 @@ func (c *ExpirableCache[K, V]) removeOldest() {
 func (c *ExpirableCache[K, V]) keys() []K {
 	keys := make([]K, 0, len(c.items))
 	for ent := c.evictList.Back(); ent != nil; ent = ent.Prev() {
-		keys = append(keys, ent.Value.(*expirableEntry[K, V]).key)
+		keys = append(keys, ent.Value.key)
 	}
 	return keys
 }
 
 // removeElement is used to remove a given list element from the cache. Has to be called with lock!
-func (c *ExpirableCache[K, V]) removeElement(e *list.Element) {
+func (c *ExpirableCache[K, V]) removeElement(e *linkedlist.Element[*expirableEntry[K, V]]) {
 	c.evictList.Remove(e)
-	kv := e.Value.(*expirableEntry[K, V])
+	kv := e.Value
 	delete(c.items, kv.key)
 	if c.onEvicted != nil {
 		c.onEvicted(kv.key, kv.value)
@@ -281,7 +282,7 @@ func (c *ExpirableCache[K, V]) removeElement(e *list.Element) {
 // deleteExpired deletes expired records. Has to be called with lock!
 func (c *ExpirableCache[K, V]) deleteExpired() {
 	for _, key := range c.keys() {
-		if time.Now().After(c.items[key].Value.(*expirableEntry[K, V]).expiresAt) {
+		if time.Now().After(c.items[key].Value.expiresAt) {
 			c.removeElement(c.items[key])
 			continue
 		}

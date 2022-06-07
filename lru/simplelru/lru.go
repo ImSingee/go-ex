@@ -1,8 +1,9 @@
 package simplelru
 
 import (
-	"container/list"
 	"errors"
+
+	"github.com/ImSingee/go-ex/linkedlist"
 )
 
 // EvictCallback is used to get a callback when a cache entry is evicted
@@ -11,8 +12,8 @@ type EvictCallback[K comparable, V any] func(key K, value V)
 // LRU implements a non-thread safe fixed size LRU cache
 type LRU[K comparable, V any] struct {
 	size      int
-	evictList *list.List
-	items     map[K]*list.Element
+	evictList *linkedlist.List[*entry[K, V]]
+	items     map[K]*linkedlist.Element[*entry[K, V]]
 	onEvict   EvictCallback[K, V]
 }
 
@@ -29,8 +30,8 @@ func NewLRU[K comparable, V any](size int, onEvict EvictCallback[K, V]) (*LRU[K,
 	}
 	c := &LRU[K, V]{
 		size:      size,
-		evictList: list.New(),
-		items:     make(map[K]*list.Element),
+		evictList: linkedlist.New[*entry[K, V]](),
+		items:     make(map[K]*linkedlist.Element[*entry[K, V]]),
 		onEvict:   onEvict,
 	}
 	return c, nil
@@ -40,7 +41,7 @@ func NewLRU[K comparable, V any](size int, onEvict EvictCallback[K, V]) (*LRU[K,
 func (c *LRU[K, V]) Purge() {
 	for k, v := range c.items {
 		if c.onEvict != nil {
-			c.onEvict(k, v.Value.(*entry[K, V]).value)
+			c.onEvict(k, v.Value.value)
 		}
 		delete(c.items, k)
 	}
@@ -52,7 +53,7 @@ func (c *LRU[K, V]) Add(key K, value V) (evicted bool) {
 	// Check for existing item
 	if ent, ok := c.items[key]; ok {
 		c.evictList.MoveToFront(ent)
-		ent.Value.(*entry[K, V]).value = value
+		ent.Value.value = value
 		return false
 	}
 
@@ -73,10 +74,10 @@ func (c *LRU[K, V]) Add(key K, value V) (evicted bool) {
 func (c *LRU[K, V]) Get(key K) (value V, ok bool) {
 	if ent, ok := c.items[key]; ok {
 		c.evictList.MoveToFront(ent)
-		if ent.Value.(*entry[K, V]) == nil {
+		if ent.Value == nil {
 			return c.zeroValue(), false
 		}
-		return ent.Value.(*entry[K, V]).value, true
+		return ent.Value.value, true
 	}
 	return
 }
@@ -91,9 +92,9 @@ func (c *LRU[K, V]) Contains(key K) (ok bool) {
 // Peek returns the key value (or undefined if not found) without updating
 // the "recently used"-ness of the key.
 func (c *LRU[K, V]) Peek(key K) (value V, ok bool) {
-	var ent *list.Element
+	var ent *linkedlist.Element[*entry[K, V]]
 	if ent, ok = c.items[key]; ok {
-		return ent.Value.(*entry[K, V]).value, true
+		return ent.Value.value, true
 	}
 	return c.zeroValue(), ok
 }
@@ -113,7 +114,7 @@ func (c *LRU[K, V]) RemoveOldest() (key K, value V, ok bool) {
 	ent := c.evictList.Back()
 	if ent != nil {
 		c.removeElement(ent)
-		kv := ent.Value.(*entry[K, V])
+		kv := ent.Value
 		return kv.key, kv.value, true
 	}
 	return c.zeroKey(), c.zeroValue(), false
@@ -123,7 +124,7 @@ func (c *LRU[K, V]) RemoveOldest() (key K, value V, ok bool) {
 func (c *LRU[K, V]) GetOldest() (key K, value V, ok bool) {
 	ent := c.evictList.Back()
 	if ent != nil {
-		kv := ent.Value.(*entry[K, V])
+		kv := ent.Value
 		return kv.key, kv.value, true
 	}
 	return c.zeroKey(), c.zeroValue(), false
@@ -134,7 +135,7 @@ func (c *LRU[K, V]) Keys() []K {
 	keys := make([]K, len(c.items))
 	i := 0
 	for ent := c.evictList.Back(); ent != nil; ent = ent.Prev() {
-		keys[i] = ent.Value.(*entry[K, V]).key
+		keys[i] = ent.Value.key
 		i++
 	}
 	return keys
@@ -167,9 +168,9 @@ func (c *LRU[K, V]) removeOldest() {
 }
 
 // removeElement is used to remove a given list element from the cache
-func (c *LRU[K, V]) removeElement(e *list.Element) {
+func (c *LRU[K, V]) removeElement(e *linkedlist.Element[*entry[K, V]]) {
 	c.evictList.Remove(e)
-	kv := e.Value.(*entry[K, V])
+	kv := e.Value
 	delete(c.items, kv.key)
 	if c.onEvict != nil {
 		c.onEvict(kv.key, kv.value)

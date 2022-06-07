@@ -1,8 +1,9 @@
 package lru
 
 import (
-	"github.com/ImSingee/go-ex/lru/simplelru"
 	"sync"
+
+	"github.com/ImSingee/go-ex/lru/simplelru"
 )
 
 const (
