@@ -14,7 +14,7 @@ type ExpirableCache[K comparable, V any] struct {
 	done       chan struct{}
 	onEvicted  EvictCallback[K, V]
 
-	sync.Mutex
+	mu        sync.Mutex
 	items     map[K]*list.Element
 	evictList *list.List
 }
@@ -72,9 +72,9 @@ func NewExpirable[K comparable, V any](size int, onEvict EvictCallback[K, V], de
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				res.Lock()
+				res.mu.Lock()
 				res.deleteExpired()
-				res.Unlock()
+				res.mu.Unlock()
 			}
 		}
 	}(res.done)
@@ -93,8 +93,8 @@ func (c *ExpirableCache[K, V]) AddWithTTL(key K, value V, ttl time.Duration) (ev
 
 // add performs the actual addition to the LRU cache
 func (c *ExpirableCache[K, V]) add(key K, value V, ttl time.Duration) (evicted bool) {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	now := time.Now()
 
 	// Check for existing item
@@ -120,8 +120,8 @@ func (c *ExpirableCache[K, V]) add(key K, value V, ttl time.Duration) (evicted b
 
 // Get returns the key value
 func (c *ExpirableCache[K, V]) Get(key K) (V, bool) {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if ent, ok := c.items[key]; ok {
 		// Expired item check
 		if time.Now().After(ent.Value.(*expirableEntry[K, V]).expiresAt) {
@@ -135,8 +135,8 @@ func (c *ExpirableCache[K, V]) Get(key K) (V, bool) {
 
 // Peek returns the key value (or undefined if not found) without updating the "recently used"-ness of the key.
 func (c *ExpirableCache[K, V]) Peek(key K) (V, bool) {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if ent, ok := c.items[key]; ok {
 		// Expired item check
 		if time.Now().After(ent.Value.(*expirableEntry[K, V]).expiresAt) {
@@ -149,8 +149,8 @@ func (c *ExpirableCache[K, V]) Peek(key K) (V, bool) {
 
 // GetOldest returns the oldest entry
 func (c *ExpirableCache[K, V]) GetOldest() (key K, value V, ok bool) {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	ent := c.evictList.Back()
 	if ent != nil {
 		kv := ent.Value.(*expirableEntry[K, V])
@@ -162,16 +162,16 @@ func (c *ExpirableCache[K, V]) GetOldest() (key K, value V, ok bool) {
 // Contains checks if a key is in the cache, without updating the recent-ness
 // or deleting it for being stale.
 func (c *ExpirableCache[K, V]) Contains(key K) (ok bool) {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	_, ok = c.items[key]
 	return ok
 }
 
 // Remove key from the cache
 func (c *ExpirableCache[K, V]) Remove(key K) bool {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if ent, ok := c.items[key]; ok {
 		c.removeElement(ent)
 		return true
@@ -181,8 +181,8 @@ func (c *ExpirableCache[K, V]) Remove(key K) bool {
 
 // RemoveOldest removes the oldest item from the cache.
 func (c *ExpirableCache[K, V]) RemoveOldest() (key K, value V, ok bool) {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	ent := c.evictList.Back()
 	if ent != nil {
 		c.removeElement(ent)
@@ -194,15 +194,15 @@ func (c *ExpirableCache[K, V]) RemoveOldest() (key K, value V, ok bool) {
 
 // Keys returns a slice of the keys in the cache, from oldest to newest.
 func (c *ExpirableCache[K, V]) Keys() []K {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.keys()
 }
 
 // Purge clears the cache completely.
 func (c *ExpirableCache[K, V]) Purge() {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	for k, v := range c.items {
 		if c.onEvicted != nil {
 			c.onEvicted(k, v.Value.(*expirableEntry[K, V]).value)
@@ -214,15 +214,15 @@ func (c *ExpirableCache[K, V]) Purge() {
 
 // DeleteExpired clears cache of expired items
 func (c *ExpirableCache[K, V]) DeleteExpired() {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.deleteExpired()
 }
 
 // Len return count of items in cache
 func (c *ExpirableCache[K, V]) Len() int {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	return c.evictList.Len()
 }
 
@@ -231,8 +231,8 @@ func (c *ExpirableCache[K, V]) Resize(size int) (evicted int) {
 	if size <= 0 {
 		return 0
 	}
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	diff := c.evictList.Len() - size
 	if diff < 0 {
 		diff = 0
@@ -246,8 +246,8 @@ func (c *ExpirableCache[K, V]) Resize(size int) (evicted int) {
 
 // Close cleans the cache and destroys running goroutines
 func (c *ExpirableCache[K, V]) Close() {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	close(c.done)
 }
 
