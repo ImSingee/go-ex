@@ -162,3 +162,23 @@ func (l *List[T]) ContainsAll(all []T) bool {
 
 	return true
 }
+
+func (l *List[T]) Equal(others []T) bool {
+	if len(l.E) != len(others) {
+		return false
+	}
+	for i := range l.E {
+		if l.E[i] != others[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func (l *List[T]) ShallowCopy() []T {
+	if l == nil || l.E == nil {
+		return nil
+	}
+
+	return append([]T{}, l.E...)
+}

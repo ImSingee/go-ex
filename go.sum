@@ -1,2 +1,4 @@
 github.com/ImSingee/tt v1.0.4 h1:avDmypiAGmTEaRVJ1hweLzggyKRVfuUfLsGrebTrAyQ=
 github.com/ImSingee/tt v1.0.4/go.mod h1:7O7v+cIBruYWGFObw85DDjH0gNLquen1cJqMR3GOgxw=
+golang.org/x/exp v0.0.0-20220602145555-4a0574d9293f h1:KK6mxegmt5hGJRcAnEDjSNLxIRhZxDcgwMbcO/lMCRM=
+golang.org/x/exp v0.0.0-20220602145555-4a0574d9293f/go.mod h1:yh0Ynu2b5ZUe3MQfp2nM0ecK7wsgouWTDN0FNeJuIys=
