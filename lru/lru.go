@@ -137,6 +137,29 @@ func (c *Cache[K, V]) ContainsOrAdd(key K, value V) (ok, evicted bool) {
 	return false, evicted
 }
 
+// ContainsOrNew checks if a key is in the cache without updating the recent-ness or
+// deleting it for being stale, and if not, use constructor create the value and add.
+// Returns whether found and whether an eviction occurred.
+func (c *Cache[K, V]) ContainsOrNew(key K, constructor func() V) (ok, evicted bool) {
+	var k K
+	var v V
+	c.lock.Lock()
+	if c.lru.Contains(key) {
+		c.lock.Unlock()
+		return true, false
+	}
+	evicted = c.lru.Add(key, constructor())
+	if c.onEvictedCB != nil && evicted {
+		k, v = c.evictedKeys[0], c.evictedVals[0]
+		c.evictedKeys, c.evictedVals = c.evictedKeys[:0], c.evictedVals[:0]
+	}
+	c.lock.Unlock()
+	if c.onEvictedCB != nil && evicted {
+		c.onEvictedCB(k, v)
+	}
+	return false, evicted
+}
+
 // PeekOrAdd checks if a key is in the cache without updating the
 // recent-ness or deleting it for being stale, and if not, adds the value.
 // Returns whether found and whether an eviction occurred.
@@ -150,6 +173,76 @@ func (c *Cache[K, V]) PeekOrAdd(key K, value V) (previous V, ok, evicted bool) {
 		return previous, true, false
 	}
 	evicted = c.lru.Add(key, value)
+	if c.onEvictedCB != nil && evicted {
+		k, v = c.evictedKeys[0], c.evictedVals[0]
+		c.evictedKeys, c.evictedVals = c.evictedKeys[:0], c.evictedVals[:0]
+	}
+	c.lock.Unlock()
+	if c.onEvictedCB != nil && evicted {
+		c.onEvictedCB(k, v)
+	}
+	return c.zeroValue(), false, evicted
+}
+
+// PeekOrNew checks if a key is in the cache without updating the
+// recent-ness or deleting it for being stale, and if not, use constructor create the value and add.
+// Returns whether found and whether an eviction occurred.
+func (c *Cache[K, V]) PeekOrNew(key K, constructor func() V) (previous V, ok, evicted bool) {
+	var k K
+	var v V
+	c.lock.Lock()
+	previous, ok = c.lru.Peek(key)
+	if ok {
+		c.lock.Unlock()
+		return previous, true, false
+	}
+	evicted = c.lru.Add(key, constructor())
+	if c.onEvictedCB != nil && evicted {
+		k, v = c.evictedKeys[0], c.evictedVals[0]
+		c.evictedKeys, c.evictedVals = c.evictedKeys[:0], c.evictedVals[:0]
+	}
+	c.lock.Unlock()
+	if c.onEvictedCB != nil && evicted {
+		c.onEvictedCB(k, v)
+	}
+	return c.zeroValue(), false, evicted
+}
+
+// GetOrAdd checks if a key is in the cache and if not, adds the value.
+// Returns whether found and whether an eviction occurred.
+func (c *Cache[K, V]) GetOrAdd(key K, value V) (previous V, ok, evicted bool) {
+	var k K
+	var v V
+	c.lock.Lock()
+	previous, ok = c.lru.Get(key)
+	if ok {
+		c.lock.Unlock()
+		return previous, true, false
+	}
+	evicted = c.lru.Add(key, value)
+	if c.onEvictedCB != nil && evicted {
+		k, v = c.evictedKeys[0], c.evictedVals[0]
+		c.evictedKeys, c.evictedVals = c.evictedKeys[:0], c.evictedVals[:0]
+	}
+	c.lock.Unlock()
+	if c.onEvictedCB != nil && evicted {
+		c.onEvictedCB(k, v)
+	}
+	return c.zeroValue(), false, evicted
+}
+
+// GetOrNew checks if a key is in the cache and if not, use constructor create the value and add.
+// Returns whether found and whether an eviction occurred.
+func (c *Cache[K, V]) GetOrNew(key K, constructor func() V) (previous V, ok, evicted bool) {
+	var k K
+	var v V
+	c.lock.Lock()
+	previous, ok = c.lru.Get(key)
+	if ok {
+		c.lock.Unlock()
+		return previous, true, false
+	}
+	evicted = c.lru.Add(key, constructor())
 	if c.onEvictedCB != nil && evicted {
 		k, v = c.evictedKeys[0], c.evictedVals[0]
 		c.evictedKeys, c.evictedVals = c.evictedKeys[:0], c.evictedVals[:0]
