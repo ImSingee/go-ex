@@ -149,20 +149,46 @@ func (c *ExpirableCache[K, V]) Peek(key K) (V, bool) {
 }
 
 // PeekOldest returns the oldest entry
+// This function won't change the order of the entry, if you want to move
+// it the front, use GetOldest
 func (c *ExpirableCache[K, V]) PeekOldest() (key K, value V, ok bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	ent := c.peekOldest()
+	if ent == nil {
+		return c.zeroKey(), c.zeroValue(), false
+	} else {
+		kv := ent.Value
+		return kv.key, kv.value, true
+	}
+}
+
+func (c *ExpirableCache[K, V]) peekOldest() (ent *linkedlist.Element[*expirableEntry[K, V]]) {
 	for {
-		ent := c.evictList.Back()
+		ent = c.evictList.Back()
 		if ent == nil { // no more elements
-			return c.zeroKey(), c.zeroValue(), false
+			return nil
 		}
 		if time.Now().After(ent.Value.expiresAt) { // expired
 			c.removeElement(ent)
 			continue
 		}
 
+		return ent
+	}
+}
+
+// GetOldest returns the oldest entry and mark it as recently-used
+func (c *ExpirableCache[K, V]) GetOldest() (key K, value V, ok bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	ent := c.peekOldest()
+	if ent == nil {
+		return c.zeroKey(), c.zeroValue(), false
+	} else {
+		c.evictList.MoveToFront(ent)
 		kv := ent.Value
 		return kv.key, kv.value, true
 	}
