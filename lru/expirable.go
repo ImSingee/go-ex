@@ -27,6 +27,10 @@ type expirableEntry[K comparable, V any] struct {
 	expiresAt time.Time
 }
 
+func (e *expirableEntry[K, V]) Expired() bool {
+	return time.Now().After(e.expiresAt)
+}
+
 // EvictCallback is used to get a callback when a cache entry is evicted
 type EvictCallback[K comparable, V any] func(key K, value V)
 
@@ -125,7 +129,7 @@ func (c *ExpirableCache[K, V]) Get(key K) (V, bool) {
 	defer c.mu.Unlock()
 	if ent, ok := c.items[key]; ok {
 		// Expired item check
-		if time.Now().After(ent.Value.expiresAt) {
+		if ent.Value.Expired() {
 			return c.zeroValue(), false
 		}
 		c.evictList.MoveToFront(ent)
@@ -140,7 +144,7 @@ func (c *ExpirableCache[K, V]) Peek(key K) (V, bool) {
 	defer c.mu.Unlock()
 	if ent, ok := c.items[key]; ok {
 		// Expired item check
-		if time.Now().After(ent.Value.expiresAt) {
+		if ent.Value.Expired() {
 			return c.zeroValue(), false
 		}
 		return ent.Value.value, true
@@ -170,7 +174,7 @@ func (c *ExpirableCache[K, V]) peekOldest() (ent *linkedlist.Element[*expirableE
 		if ent == nil { // no more elements
 			return nil
 		}
-		if time.Now().After(ent.Value.expiresAt) { // expired
+		if ent.Value.Expired() { // expired
 			c.removeElement(ent)
 			continue
 		}
@@ -199,7 +203,15 @@ func (c *ExpirableCache[K, V]) GetOldest() (key K, value V, ok bool) {
 func (c *ExpirableCache[K, V]) Contains(key K) (ok bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	_, ok = c.items[key]
+
+	ent, ok := c.items[key]
+	if ok {
+		if ent.Value.Expired() {
+			c.removeElement(ent)
+			return false
+		}
+	}
+
 	return ok
 }
 
@@ -218,7 +230,8 @@ func (c *ExpirableCache[K, V]) Remove(key K) bool {
 func (c *ExpirableCache[K, V]) RemoveOldest() (key K, value V, ok bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	ent := c.evictList.Back()
+
+	ent := c.peekOldest()
 	if ent != nil {
 		c.removeElement(ent)
 		kv := ent.Value
@@ -228,9 +241,19 @@ func (c *ExpirableCache[K, V]) RemoveOldest() (key K, value V, ok bool) {
 }
 
 // Keys returns a slice of the keys in the cache, from oldest to newest.
+// Warning: returned slice may contain expired keys,
+// if you want only un-expired keys, use UnexpiredKeys
 func (c *ExpirableCache[K, V]) Keys() []K {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	return c.keys()
+}
+
+// UnexpiredKeys returns a slice of the keys in the cache, from oldest to newest.
+func (c *ExpirableCache[K, V]) UnexpiredKeys() []K {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.deleteExpired()
 	return c.keys()
 }
 
@@ -288,7 +311,7 @@ func (c *ExpirableCache[K, V]) Close() {
 
 // removeOldest removes the oldest item from the cache. Has to be called with lock!
 func (c *ExpirableCache[K, V]) removeOldest() {
-	ent := c.evictList.Back()
+	ent := c.peekOldest()
 	if ent != nil {
 		c.removeElement(ent)
 	}
@@ -316,7 +339,7 @@ func (c *ExpirableCache[K, V]) removeElement(e *linkedlist.Element[*expirableEnt
 // deleteExpired deletes expired records. Has to be called with lock!
 func (c *ExpirableCache[K, V]) deleteExpired() {
 	for _, key := range c.keys() {
-		if time.Now().After(c.items[key].Value.expiresAt) {
+		if c.items[key].Value.Expired() {
 			c.removeElement(c.items[key])
 			continue
 		}
