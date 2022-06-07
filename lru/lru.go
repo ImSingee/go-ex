@@ -187,16 +187,17 @@ func (c *Cache[K, V]) PeekOrAdd(key K, value V) (previous V, ok, evicted bool) {
 // PeekOrNew checks if a key is in the cache without updating the
 // recent-ness or deleting it for being stale, and if not, use constructor create the value and add.
 // Returns whether found and whether an eviction occurred.
-func (c *Cache[K, V]) PeekOrNew(key K, constructor func() V) (previous V, ok, evicted bool) {
+func (c *Cache[K, V]) PeekOrNew(key K, constructor func() V) (value V, ok, evicted bool) {
 	var k K
 	var v V
 	c.lock.Lock()
-	previous, ok = c.lru.Peek(key)
+	value, ok = c.lru.Peek(key)
 	if ok {
 		c.lock.Unlock()
-		return previous, true, false
+		return value, true, false
 	}
-	evicted = c.lru.Add(key, constructor())
+	value = constructor()
+	evicted = c.lru.Add(key, value)
 	if c.onEvictedCB != nil && evicted {
 		k, v = c.evictedKeys[0], c.evictedVals[0]
 		c.evictedKeys, c.evictedVals = c.evictedKeys[:0], c.evictedVals[:0]
@@ -205,7 +206,7 @@ func (c *Cache[K, V]) PeekOrNew(key K, constructor func() V) (previous V, ok, ev
 	if c.onEvictedCB != nil && evicted {
 		c.onEvictedCB(k, v)
 	}
-	return c.zeroValue(), false, evicted
+	return value, false, evicted
 }
 
 // GetOrAdd checks if a key is in the cache and if not, adds the value.
@@ -233,16 +234,17 @@ func (c *Cache[K, V]) GetOrAdd(key K, value V) (previous V, ok, evicted bool) {
 
 // GetOrNew checks if a key is in the cache and if not, use constructor create the value and add.
 // Returns whether found and whether an eviction occurred.
-func (c *Cache[K, V]) GetOrNew(key K, constructor func() V) (previous V, ok, evicted bool) {
+func (c *Cache[K, V]) GetOrNew(key K, constructor func() V) (value V, ok, evicted bool) {
 	var k K
 	var v V
 	c.lock.Lock()
-	previous, ok = c.lru.Get(key)
+	value, ok = c.lru.Get(key)
 	if ok {
 		c.lock.Unlock()
-		return previous, true, false
+		return value, true, false
 	}
-	evicted = c.lru.Add(key, constructor())
+	value = constructor()
+	evicted = c.lru.Add(key, value)
 	if c.onEvictedCB != nil && evicted {
 		k, v = c.evictedKeys[0], c.evictedVals[0]
 		c.evictedKeys, c.evictedVals = c.evictedKeys[:0], c.evictedVals[:0]
@@ -251,7 +253,7 @@ func (c *Cache[K, V]) GetOrNew(key K, constructor func() V) (previous V, ok, evi
 	if c.onEvictedCB != nil && evicted {
 		c.onEvictedCB(k, v)
 	}
-	return c.zeroValue(), false, evicted
+	return value, false, evicted
 }
 
 // Remove removes the provided key from the cache.
