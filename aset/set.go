@@ -1,3 +1,5 @@
+// Package set provide many useful methods to deal with set
+// Deprecated: please use new set (instead of current deprecated aset)
 package set
 
 type (
