@@ -75,6 +75,11 @@ func (s *Set[T]) DoE(f func(T) error) error {
 	return nil
 }
 
+// Contains Test to see whether the element is in the set
+func (s *Set[T]) Contains(element T) bool {
+	return s.Has(element)
+}
+
 // Has Test to see whether the element is in the set
 func (s *Set[T]) Has(element T) bool {
 	_, exists := s.hash[element]
