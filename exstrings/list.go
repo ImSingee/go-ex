@@ -40,12 +40,12 @@ func ListToInterface(ss []string) []interface{} {
 // 返回值 2 为 cmp 比 base 减少的元素
 // 这一函数的时间和空间复杂度均为 O(M+N)
 func Diff(cmp, base []string) (add, sub, equal []string) {
-	cmpSet := set.NewFromString(cmp)
-	baseSet := set.NewFromString(base)
+	cmpSet := set.New(cmp...)
+	baseSet := set.New(base...)
 
-	add, _ = cmpSet.Difference(baseSet).ToStringList()
-	sub, _ = baseSet.Difference(cmpSet).ToStringList()
-	equal, _ = baseSet.Intersection(cmpSet).ToStringList()
+	add = cmpSet.Difference(baseSet).All()
+	sub = baseSet.Difference(cmpSet).All()
+	equal = baseSet.Intersection(cmpSet).All()
 
 	return
 }
@@ -70,7 +70,7 @@ func DeDuplicate(base []string) []string {
 	}
 
 	newSlice := make([]string, 0, len(base))
-	s := set.New()
+	s := set.New[string]()
 
 	for _, e := range base {
 		if s.Has(e) {
@@ -85,11 +85,10 @@ func DeDuplicate(base []string) []string {
 }
 
 func GetIntersection(sliceList ...[]string) []string {
-	sets := make([]*set.Set, len(sliceList))
+	sets := make([]*set.Set[string], len(sliceList))
 	for i, e := range sliceList {
-		sets[i] = set.NewFromString(e)
+		sets[i] = set.New(e...)
 	}
 
-	ee, _ := set.Intersection(sets...).ToStringList()
-	return ee
+	return set.Intersection(sets...).All()
 }
