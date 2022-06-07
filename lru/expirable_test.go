@@ -60,7 +60,7 @@ func TestExpirableLRUWithPurge(t *testing.T) {
 	lc := NewExpirable[string, string](10, func(key, value string) { evicted = append(evicted, key, value) }, 150*time.Millisecond, time.Millisecond*100)
 	defer lc.Close()
 
-	k, v, ok := lc.GetOldest()
+	k, v, ok := lc.PeekOldest()
 	if k != "" {
 		t.Fatalf("should be empty")
 	}
@@ -108,7 +108,7 @@ func TestExpirableLRUWithPurge(t *testing.T) {
 		t.Fatalf("length differs from expected")
 	}
 
-	k, v, ok = lc.GetOldest()
+	k, v, ok = lc.PeekOldest()
 	if k != "key2" {
 		t.Fatalf("value differs from expected")
 	}

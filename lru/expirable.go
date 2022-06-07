@@ -148,16 +148,24 @@ func (c *ExpirableCache[K, V]) Peek(key K) (V, bool) {
 	return c.zeroValue(), false
 }
 
-// GetOldest returns the oldest entry
-func (c *ExpirableCache[K, V]) GetOldest() (key K, value V, ok bool) {
+// PeekOldest returns the oldest entry
+func (c *ExpirableCache[K, V]) PeekOldest() (key K, value V, ok bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	ent := c.evictList.Back()
-	if ent != nil {
+
+	for {
+		ent := c.evictList.Back()
+		if ent == nil { // no more elements
+			return c.zeroKey(), c.zeroValue(), false
+		}
+		if time.Now().After(ent.Value.expiresAt) { // expired
+			c.removeElement(ent)
+			continue
+		}
+
 		kv := ent.Value
 		return kv.key, kv.value, true
 	}
-	return c.zeroKey(), c.zeroValue(), false
 }
 
 // Contains checks if a key is in the cache, without updating the recent-ness
