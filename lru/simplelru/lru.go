@@ -17,6 +17,12 @@ type LRU[K comparable, V any] struct {
 	onEvict   EvictCallback[K, V]
 }
 
+// Entry is used to hold a key-value pair
+type Entry[K, V any] struct {
+	Key   K
+	Value V
+}
+
 // entry is used to hold a value in the evictList
 type entry[K comparable, V any] struct {
 	key   K
@@ -139,6 +145,20 @@ func (c *LRU[K, V]) Keys() []K {
 		i++
 	}
 	return keys
+}
+
+// Items returns a slice of the key-value pairs in the cache, from oldest to newest.
+func (c *LRU[K, V]) Items() []Entry[K, V] {
+	items := make([]Entry[K, V], len(c.items))
+	i := 0
+	for ent := c.evictList.Back(); ent != nil; ent = ent.Prev() {
+		items[i] = Entry[K, V]{
+			Key:   ent.Value.key,
+			Value: ent.Value.value,
+		}
+		i++
+	}
+	return items
 }
 
 // Len returns the number of items in the cache.
