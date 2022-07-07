@@ -22,7 +22,7 @@ func DecodeToValue[T any](p []byte) (T, error) {
 	var v T
 	err := DecodeTo(p, &v)
 	if err != nil {
-		return nil, err
+		return v, err
 	}
 	return v, nil
 }
