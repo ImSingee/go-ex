@@ -5,6 +5,28 @@ import (
 	. "reflect"
 )
 
+// mustDeepCopy does a deep copy and panics on any errors.
+func mustDeepCopy(x any) any {
+	dc, err := deepCopy(x)
+	if err != nil {
+		panic(err)
+	}
+	return dc
+}
+
+// deepCopy makes a deep copy of whatever gets passed in. It handles pretty much all known Go types
+// (with the exception of channels, unsafe pointers, and functions). Note that this is a truly deep
+// copy that will work it's way all the way to the leaves of the types--any pointer will be copied,
+// any values in any slice or map will be deep copied, etc.
+// Note: in order to avoid an infinite loop, we keep track of any pointers that we've run across.
+// If we run into that pointer again, we don't make another deep copy of it; we just replace it with
+// the copy we've already made. This also ensures that the cloned result is functionally equivalent
+// to the original value.
+func deepCopy(x any) (any, error) {
+	ptrs := make(map[uintptr]any)
+	return _anything(x, ptrs)
+}
+
 type copier func(any, map[uintptr]any) (any, error)
 
 var copiers map[Kind]copier
@@ -36,15 +58,6 @@ func init() {
 	}
 }
 
-// MustAnything does a deep copy and panics on any errors.
-func MustAnything(x any) any {
-	dc, err := Anything(x)
-	if err != nil {
-		panic(err)
-	}
-	return dc
-}
-
 // Primitive makes a copy of a primitive type...which just means it returns the input value.
 // This is wholly uninteresting, but I included it for consistency's sake.
 func _primitive(x any, ptrs map[uintptr]any) (any, error) {
@@ -53,19 +66,6 @@ func _primitive(x any, ptrs map[uintptr]any) (any, error) {
 		return nil, fmt.Errorf("unable to copy %v (a %v) as a primitive", x, kind)
 	}
 	return x, nil
-}
-
-// Anything makes a deep copy of whatever gets passed in. It handles pretty much all known Go types
-// (with the exception of channels, unsafe pointers, and functions). Note that this is a truly deep
-// copy that will work it's way all the way to the leaves of the types--any pointer will be copied,
-// any values in any slice or map will be deep copied, etc.
-// Note: in order to avoid an infinite loop, we keep track of any pointers that we've run across.
-// If we run into that pointer again, we don't make another deep copy of it; we just replace it with
-// the copy we've already made. This also ensures that the cloned result is functionally equivalent
-// to the original value.
-func Anything(x any) (any, error) {
-	ptrs := make(map[uintptr]any)
-	return _anything(x, ptrs)
 }
 
 func _anything(x any, ptrs map[uintptr]any) (any, error) {
