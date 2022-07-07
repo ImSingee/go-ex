@@ -5,6 +5,25 @@ import (
 	. "reflect"
 )
 
+// DeepCopy makes a deep copy of whatever gets passed in. It handles pretty much all known Go types
+// (except channels, unsafe pointers, and functions). Note that this is a truly deep
+// copy that will work it's way all the way to the leaves of the types--any pointer will be copied,
+// any values in any slice or map will be deep copied, etc.
+func DeepCopy[T any](x T) (T, error) {
+	y, err := deepCopy(x)
+	if err != nil {
+		var y T
+		return y, err
+	}
+
+	return y.(T), nil
+}
+
+// MustDeepCopy does a deep copy and panics on any errors.
+func MustDeepCopy[T any](x T) T {
+	return mustDeepCopy(x).(T)
+}
+
 // mustDeepCopy does a deep copy and panics on any errors.
 func mustDeepCopy(x any) any {
 	dc, err := deepCopy(x)
@@ -15,7 +34,7 @@ func mustDeepCopy(x any) any {
 }
 
 // deepCopy makes a deep copy of whatever gets passed in. It handles pretty much all known Go types
-// (with the exception of channels, unsafe pointers, and functions). Note that this is a truly deep
+// (except channels, unsafe pointers, and functions). Note that this is a truly deep
 // copy that will work it's way all the way to the leaves of the types--any pointer will be copied,
 // any values in any slice or map will be deep copied, etc.
 // Note: in order to avoid an infinite loop, we keep track of any pointers that we've run across.
