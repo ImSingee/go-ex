@@ -73,7 +73,6 @@ func TestExpirableLRUWithPurge(t *testing.T) {
 
 	lc.Add("key1", "val1")
 
-	time.Sleep(100 * time.Millisecond) // not enough to expire
 	if lc.Len() != 1 {
 		t.Fatalf("length differs from expected")
 	}
@@ -271,17 +270,15 @@ func TestAddWithTTL(t *testing.T) {
 		t.Fatalf("should be true")
 	}
 
-	time.Sleep(time.Millisecond * 10)
-
 	v, ok = lc.Peek("key1")
-	if v != "val1" {
-		t.Fatalf("value differs from expected")
-	}
 	if !ok {
 		t.Fatalf("should be true")
 	}
+	if v != "val1" {
+		t.Fatalf("value differs from expected")
+	}
 
-	time.Sleep(time.Millisecond * 5)
+	time.Sleep(time.Millisecond * 15)
 
 	v, ok = lc.Get("key1")
 	if v != "" {
