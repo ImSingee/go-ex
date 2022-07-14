@@ -21,5 +21,5 @@ func TestErrorStack(t *testing.T) {
 
 	stack := err.singeeErrStack()
 	s := fmt.Sprintf("%+v\n", stack)
-	tt.AssertTrue(t, strings.Contains(s, "errors.f1"))
+	tt.AssertTrue(t, strings.Contains(s, "ee.f1"))
 }
