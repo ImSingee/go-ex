@@ -53,7 +53,7 @@ func (o *TLSConfigOptions) TLSConfig() (*tls.Config, error) {
 	config := &tls.Config{}
 
 	if len(o.CaPem) != 0 || o.CaFilePath != "" {
-		var caPem []byte
+		caPem := o.CaPem
 		var err error
 
 		if len(o.CaPem) == 0 && o.CaFilePath != "" {
@@ -71,7 +71,9 @@ func (o *TLSConfigOptions) TLSConfig() (*tls.Config, error) {
 	}
 
 	if len(o.ClientCertPem) != 0 || len(o.ClientKeyPem) != 0 || o.ClientCertFile != "" || o.ClientKeyFile != "" {
-		var clientCertPem, clientKeyPem []byte
+		clientCertPem := o.ClientCertPem
+		clientKeyPem := o.ClientKeyPem
+
 		var err error
 
 		if len(o.ClientCertPem) == 0 && o.ClientCertFile != "" {

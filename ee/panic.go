@@ -35,7 +35,7 @@ func PanicWrapf(err error, format string, args ...interface{}) {
 	panic(wrap(err, fmt.Sprintf(format, args...)))
 }
 
-func ErrFromAmbotPanic(v interface{}) error {
+func ErrFromPanic(v interface{}) error {
 	err, _ := v.(stacker)
 	return err
 }
