@@ -1,5 +1,3 @@
-// Package set provide many useful methods to deal with set
-// Deprecated: please use new set (instead of current deprecated aset)
 package set
 
 type (
@@ -166,6 +164,16 @@ func (s *Set[T]) Union(set *Set[T]) *Set[T] {
 	}
 
 	return &Set[T]{n}
+}
+
+// ContainsOrAdd add element if not exist
+func (s *Set[T]) ContainsOrAdd(element T) (added bool) {
+	if s.Has(element) {
+		return false
+	}
+
+	s.Add(element)
+	return true
 }
 
 // Intersection 返回若干个 set 的交集
