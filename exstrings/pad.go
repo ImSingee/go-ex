@@ -11,6 +11,22 @@ func repeat(b []byte, pad string, padLen int) {
 	}
 }
 
+func LeftPad(s, pad string, c int) string {
+	padLen := c - len(s)
+	if padLen <= 0 {
+		return s
+	}
+
+	b := make([]byte, c)
+	repeat(b[:padLen], pad, padLen)
+	copy(b[padLen:], s)
+
+	return exbytes.ToString(b)
+}
+func LeftPadSpace(s string, minLength int) string {
+	return LeftPad(s, " ", minLength)
+}
+
 // RightPad 使用另一个字符串从右端填充字符串为指定长度。
 func RightPad(s, pad string, c int) string {
 	padLen := c - len(s)
@@ -25,6 +41,5 @@ func RightPad(s, pad string, c int) string {
 	return exbytes.ToString(b)
 }
 func RightPadSpace(s string, minLength int) string {
-
 	return RightPad(s, " ", minLength)
 }
