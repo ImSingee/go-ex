@@ -84,18 +84,12 @@ func (cv *CachedValue[T]) Refresh(fetchFn ...func() (T, error)) (T, error) {
 	return cv.v, nil
 }
 
-// refresh immediately
-// must acquire lock before call (and release it after)
-func (cv *CachedValue[T]) refresh(f func() (T, error)) (T, error) {
-	v, err := f()
-	if err != nil {
-		return v, err
-	}
+// Reset cached value (will fetch next time)
+func (cv *CachedValue[T]) Reset() {
+	cv.l.Lock()
+	defer cv.l.Unlock()
 
-	cv.v = v
-	cv.nextFetch = time.Now().Add(cv.fetchInterval)
-
-	return v, nil
+	cv.nextFetch = time.Time{}
 }
 
 // SetFetchInterval change fetch interval (will not affect nextFetch time)
