@@ -85,7 +85,7 @@ func TestExpirableLRUWithPurge(t *testing.T) {
 		t.Fatalf("should be true")
 	}
 
-	time.Sleep(200 * time.Millisecond) // expire
+	time.Sleep(300 * time.Millisecond) // expire
 	v, ok = lc.Get("key1")
 	if ok {
 		t.Fatalf("should be false")
