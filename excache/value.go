@@ -39,7 +39,7 @@ func (cv *CachedValue[T]) Get(fetchFn ...func() (T, error)) (T, error) {
 	}
 
 	if fn == nil {
-		return nil, ee.WithStack(ErrFetchFnNotSet)
+		return cv.v, ee.WithStack(ErrFetchFnNotSet)
 	}
 
 	cv.l.Lock()
@@ -67,7 +67,7 @@ func (cv *CachedValue[T]) Refresh(fetchFn ...func() (T, error)) (T, error) {
 	}
 
 	if fn == nil {
-		return nil, ee.WithStack(ErrFetchFnNotSet)
+		return cv.v, ee.WithStack(ErrFetchFnNotSet)
 	}
 
 	cv.l.Lock()
