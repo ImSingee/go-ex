@@ -7,7 +7,6 @@ import (
 )
 
 type ServerTLSConfigOptions struct {
-	ServerName        string
 	ServerCertPem     []byte
 	ServerCertFile    string
 	ServerKeyPem      []byte
@@ -16,11 +15,6 @@ type ServerTLSConfigOptions struct {
 	ClientAuth        tls.ClientAuthType // for client auth
 	CaPem             []byte             // for client auth
 	CaFilePath        string             // for client auth
-}
-
-func (o *ServerTLSConfigOptions) WithServerName(serverName string) *ServerTLSConfigOptions {
-	o.ServerName = serverName
-	return o
 }
 
 func (o *ServerTLSConfigOptions) WithServerCertificatePem(serverCertPem, serverKeyPem []byte) *ServerTLSConfigOptions {
@@ -57,8 +51,6 @@ func (o *ServerTLSConfigOptions) WithCA(caFilePath string) *ServerTLSConfigOptio
 
 func (o *ServerTLSConfigOptions) TLSConfig() (*tls.Config, error) {
 	config := &tls.Config{}
-
-	config.ServerName = o.ServerName
 
 	if len(o.ServerCertPem) != 0 || o.ServerCertFile != "" {
 		serverCertPem := o.ServerCertPem

@@ -14,6 +14,7 @@ type ClientTLSConfigOptions struct {
 	ClientKeyPem      []byte
 	ClientKeyFile     string
 	ClientKeyPassword string
+	ServerName        string // override default server name verification
 	Insecure          bool
 }
 
@@ -46,6 +47,11 @@ func (o *ClientTLSConfigOptions) WithClientCertificate(clientCertFile string, cl
 
 func (o *ClientTLSConfigOptions) WithClientKeyPassword(password string) *ClientTLSConfigOptions {
 	o.ClientKeyPassword = password
+	return o
+}
+
+func (o *ClientTLSConfigOptions) WithServerName(serverName string) *ClientTLSConfigOptions {
+	o.ServerName = serverName
 	return o
 }
 
@@ -105,6 +111,7 @@ func (o *ClientTLSConfigOptions) TLSConfig() (*tls.Config, error) {
 		}
 	}
 
+	config.ServerName = o.ServerName
 	if o.Insecure {
 		config.InsecureSkipVerify = true
 	}
