@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-type TLSConfigOptions struct {
+type ClientTLSConfigOptions struct {
 	CaPem             []byte
 	CaFilePath        string
 	ClientCertPem     []byte
@@ -17,39 +17,44 @@ type TLSConfigOptions struct {
 	Insecure          bool
 }
 
-func (o *TLSConfigOptions) WithCAPem(pem []byte) *TLSConfigOptions {
+// TLSConfigOptions
+//
+// Deprecated: use ClientTLSConfigOptions instead
+type TLSConfigOptions = ClientTLSConfigOptions
+
+func (o *ClientTLSConfigOptions) WithCAPem(pem []byte) *ClientTLSConfigOptions {
 	o.CaPem = pem
 	return o
 }
 
-func (o *TLSConfigOptions) WithCA(caFilePath string) *TLSConfigOptions {
+func (o *ClientTLSConfigOptions) WithCA(caFilePath string) *ClientTLSConfigOptions {
 	o.CaFilePath = caFilePath
 	return nil
 }
 
-func (o *TLSConfigOptions) WithClientCertificatePem(clientCertPem, clientKeyPem []byte) *TLSConfigOptions {
+func (o *ClientTLSConfigOptions) WithClientCertificatePem(clientCertPem, clientKeyPem []byte) *ClientTLSConfigOptions {
 	o.ClientCertPem = clientCertPem
 	o.ClientKeyPem = clientKeyPem
 	return o
 }
 
-func (o *TLSConfigOptions) WithClientCertificate(clientCertFile string, clientKeyFile string) *TLSConfigOptions {
+func (o *ClientTLSConfigOptions) WithClientCertificate(clientCertFile string, clientKeyFile string) *ClientTLSConfigOptions {
 	o.ClientCertFile = clientCertFile
 	o.ClientKeyFile = clientKeyFile
 	return o
 }
 
-func (o *TLSConfigOptions) WithClientKeyPassword(password string) *TLSConfigOptions {
+func (o *ClientTLSConfigOptions) WithClientKeyPassword(password string) *ClientTLSConfigOptions {
 	o.ClientKeyPassword = password
 	return o
 }
 
-func (o *TLSConfigOptions) WithInsecure(insecure bool) *TLSConfigOptions {
+func (o *ClientTLSConfigOptions) WithInsecure(insecure bool) *ClientTLSConfigOptions {
 	o.Insecure = insecure
 	return o
 }
 
-func (o *TLSConfigOptions) TLSConfig() (*tls.Config, error) {
+func (o *ClientTLSConfigOptions) TLSConfig() (*tls.Config, error) {
 	config := &tls.Config{}
 
 	if len(o.CaPem) != 0 || o.CaFilePath != "" {
