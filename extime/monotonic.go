@@ -21,6 +21,11 @@ func Monotonic() int64 {
 //go:linkname startNano time.startNano
 var startNano int64
 
+// StartMono returns the start monotonic time of the program
+func StartMono() int64 {
+	return startNano + 1
+}
+
 //go:noescape
 //go:linkname timeMono time.(*Time).mono
 func timeMono(t *time.Time) int64
