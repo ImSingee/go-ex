@@ -28,8 +28,8 @@ func SecondsToString(seconds int) string {
 	}
 }
 
-func TimeToRelative(d time.Time) string {
-	seconds := int(time.Since(d) / time.Second)
+func DurationToRelative(d time.Duration) string {
+	seconds := int(d.Seconds())
 
 	s := SecondsToString(seconds)
 	if s == "" {
@@ -41,4 +41,8 @@ func TimeToRelative(d time.Time) string {
 	} else {
 		return s + "later"
 	}
+}
+
+func TimeToRelative(d time.Time) string {
+	return DurationToRelative(time.Since(d))
 }
