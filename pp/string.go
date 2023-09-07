@@ -39,6 +39,14 @@ func (s *String) ChangeColor(newColor *Color) {
 	s.color = newColor
 }
 
+func (s String) WithColor(newColor *Color) String {
+	return String{s: s.s, color: newColor}
+}
+
+func ColorString(color *Color, format string, a ...interface{}) String {
+	return colorString(color, format, a...)
+}
+
 func colorString(color *Color, format string, a ...interface{}) String {
 	if len(a) == 0 {
 		return String{format, color}
