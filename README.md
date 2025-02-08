@@ -7,9 +7,8 @@
 
 Many useful types/functions for Go!
 
-**The repository is unstable now, and may introduce broken change in the future**
-
-You can simply copy and paste any useful codes you need, if you want to use the module directly, **USE IT AT YOUR OWN RISK**
+The project is stable and not under active development. But if you have any suggestions, please feel free to open an
+issue or PR.
 
 ## License
 
