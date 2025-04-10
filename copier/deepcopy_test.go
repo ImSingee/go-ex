@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func ExampleAnything() {
+func TestAnything(t *testing.T) {
 	tests := []any{
 		`"Now cut that out!"`,
 		39,
@@ -44,7 +44,7 @@ type Foo struct {
 	Bar int
 }
 
-func ExampleMap() {
+func TestMap(t *testing.T) {
 	x := map[string]*Foo{
 		"foo": &Foo{Bar: 1},
 		"bar": &Foo{Bar: 2},
@@ -77,7 +77,7 @@ func TestInterface(t *testing.T) {
 	}
 }
 
-func ExampleAvoidInfiniteLoops() {
+func TestAvoidInfiniteLoops(t *testing.T) {
 	x := &Foo{
 		Bar: 4,
 	}
