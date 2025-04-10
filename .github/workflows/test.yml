@@ -1,12 +1,13 @@
-name: Test and Coverage
+name: Test
 on: [ push, pull_request, workflow_dispatch ]
 jobs:
-  converage:
+  test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest, windows-latest ]
-        go: [ 1.18.x, 1.19.x, 1.20.x ]
+        go: [ 1.18.x, 1.19.x, 1.20.x, 1.21.x, 1.22.x, 1.23.x, 1.24.x ]
     env:
       OS: ${{ matrix.os }}
       GO: ${{ matrix.go }}
