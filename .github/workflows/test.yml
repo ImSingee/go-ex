@@ -19,6 +19,9 @@ jobs:
           go-version: ${{ matrix.go }}
       - name: Run tests
         run: go test -race -coverprofile coverage.txt -covermode atomic ./...
+      - name: Run tests with checklinkname=0
+        if: ${{ matrix.go !='1.18.x' && matrix.go !='1.19.x' && matrix.go !='1.20.x' && matrix.go !='1.21.x' && matrix.go !='1.22.x'  }}
+        run: go test -race -tags allow_linkname -ldflags='-checklinkname=0' -coverprofile coverage.txt -covermode atomic ./...
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
