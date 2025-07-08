@@ -1,8 +1,9 @@
 package exstrings
 
 import (
-	"github.com/ImSingee/tt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLeftPad(t *testing.T) {
@@ -40,7 +41,7 @@ func TestLeftPad(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			got := LeftPad(c.s, c.pad, c.minLength)
 
-			tt.AssertEqual(t, got, c.want)
+			assert.Equal(t, got, c.want)
 		})
 	}
 }

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ImSingee/tt"
+	"github.com/stretchr/testify/assert"
 )
 
 func f1() error {
@@ -21,5 +21,5 @@ func TestErrorStack(t *testing.T) {
 
 	stack := err.singeeErrStack()
 	s := fmt.Sprintf("%+v\n", stack)
-	tt.AssertTrue(t, strings.Contains(s, "ee.f1"))
+	assert.True(t, strings.Contains(s, "ee.f1"))
 }

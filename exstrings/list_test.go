@@ -4,7 +4,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/ImSingee/tt"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestListToInt(t *testing.T) {
@@ -49,11 +49,11 @@ func TestListToInt(t *testing.T) {
 			got, err := ListToInt(c.in)
 
 			if !c.willError {
-				tt.AssertIsNil(t, err)
+				assert.Nil(t, err)
 
-				tt.AssertEqual(t, got, c.want)
+				assert.Equal(t, c.want, got)
 			} else {
-				tt.AssertIsNotNil(t, err)
+				assert.NotNil(t, err)
 			}
 		})
 	}
@@ -67,7 +67,7 @@ func TestDiff(t *testing.T) {
 	sort.Strings(add)
 	sort.Strings(sub)
 	sort.Strings(equal)
-	tt.AssertEqual(t, []string{"k", "p"}, add)
-	tt.AssertEqual(t, []string{"e", "h"}, sub)
-	tt.AssertEqual(t, []string{"l"}, equal)
+	assert.Equal(t, []string{"k", "p"}, add)
+	assert.Equal(t, []string{"e", "h"}, sub)
+	assert.Equal(t, []string{"l"}, equal)
 }

@@ -1,13 +1,14 @@
 package extime
 
 import (
-	"github.com/ImSingee/tt"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMonotonic(t *testing.T) {
-	tt.AssertNotEqual(t, int64(0), Monotonic())
+	assert.NotEqual(t, int64(0), Monotonic())
 }
 
 func TestMonoSub(t *testing.T) {
@@ -15,5 +16,5 @@ func TestMonoSub(t *testing.T) {
 	time.Sleep(1)
 	mono2 := Monotonic()
 
-	tt.AssertEqual(t, time.Duration(mono1-mono2), MonoSub(mono1, mono2))
+	assert.Equal(t, time.Duration(mono1-mono2), MonoSub(mono1, mono2))
 }

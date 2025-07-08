@@ -1,8 +1,9 @@
 package dt
 
 import (
-	"github.com/ImSingee/tt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestToString(t *testing.T) {
@@ -15,7 +16,7 @@ func TestToString(t *testing.T) {
 
 	for v, s := range cases {
 		t.Run("case", func(t *testing.T) {
-			tt.AssertEqual(t, s, ToString(v))
+			assert.Equal(t, s, ToString(v))
 		})
 	}
 }

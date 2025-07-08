@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ImSingee/tt"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseBool(t *testing.T) {
@@ -23,16 +23,16 @@ func TestParseBool(t *testing.T) {
 	for _, c := range trueCases {
 		t.Run(fmt.Sprintf("Should Be True: %#+v", c), func(t *testing.T) {
 			b, ok := ParseBool(c)
-			tt.AssertTrue(t, ok)
-			tt.AssertTrue(t, b)
+			assert.True(t, ok)
+			assert.True(t, b)
 		})
 	}
 
 	for _, c := range falseCases {
 		t.Run(fmt.Sprintf("Should Be False: %#+v", c), func(t *testing.T) {
 			b, ok := ParseBool(c)
-			tt.AssertTrue(t, ok)
-			tt.AssertFalse(t, b)
+			assert.True(t, ok)
+			assert.False(t, b)
 		})
 	}
 

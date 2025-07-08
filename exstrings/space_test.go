@@ -3,7 +3,7 @@ package exstrings
 import (
 	"testing"
 
-	"github.com/ImSingee/tt"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestFoldSpace(t *testing.T) {
@@ -17,7 +17,7 @@ func TestFoldSpace(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c[0], func(t *testing.T) {
-			tt.AssertEqual(t, c[1], FoldSpace(c[0]))
+			assert.Equal(t, c[1], FoldSpace(c[0]))
 		})
 	}
 }

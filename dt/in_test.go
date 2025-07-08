@@ -2,8 +2,9 @@ package dt
 
 import (
 	"fmt"
-	"github.com/ImSingee/tt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInSlice(t *testing.T) {
@@ -16,7 +17,7 @@ func TestInSlice(t *testing.T) {
 
 	for i, c := range trueCases {
 		t.Run(fmt.Sprintf("true - %d", i), func(t *testing.T) {
-			tt.AssertTrue(t, InSlice(c[0], c[1]))
+			assert.True(t, InSlice(c[0], c[1]))
 		})
 	}
 
@@ -29,7 +30,7 @@ func TestInSlice(t *testing.T) {
 
 	for i, c := range falseCases {
 		t.Run(fmt.Sprintf("false - %d", i), func(t *testing.T) {
-			tt.AssertFalse(t, InSlice(c[0], c[1]))
+			assert.False(t, InSlice(c[0], c[1]))
 		})
 	}
 }

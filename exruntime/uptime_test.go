@@ -3,12 +3,13 @@
 package exruntime
 
 import (
-	"github.com/ImSingee/tt"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUptime(t *testing.T) {
 	time.Sleep(1)
-	tt.AssertTrue(t, Uptime() > 0)
+	assert.True(t, Uptime() > 0)
 }

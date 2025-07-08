@@ -1,9 +1,10 @@
 package exbytes
 
 import (
-	"github.com/ImSingee/tt"
 	"runtime"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestToString(t *testing.T) {
@@ -15,5 +16,5 @@ func TestToString(t *testing.T) {
 
 	runtime.GC()
 
-	tt.AssertEqual(t, "Hello world", s)
+	assert.Equal(t, "Hello world", s)
 }

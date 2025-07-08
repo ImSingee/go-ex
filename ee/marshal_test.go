@@ -3,9 +3,10 @@ package ee
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ImSingee/tt"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMarshalJson(t *testing.T) {
@@ -20,9 +21,9 @@ func TestMarshalJson(t *testing.T) {
 	for _, err := range errs {
 		t.Run("marshal "+err.Error(), func(t *testing.T) {
 			p, e := json.Marshal(err)
-			tt.AssertIsNotError(t, e)
+			assert.NoError(t, e)
 
-			tt.AssertEqual(t, strconv.Quote(err.Error()), string(p))
+			assert.Equal(t, strconv.Quote(err.Error()), string(p))
 		})
 	}
 }
